@@ -163,6 +163,42 @@ def train_KNN(X_train: pd.DataFrame,
     return knn_best
 
 
+def train_ensemble(rf_model: RandomForestClassifier,
+                   knn_model: KNeighborsClassifier,
+                   X_train: pd.DataFrame,
+                   y_train: pd.Series,
+                   X_test: pd.DataFrame,
+                   y_test: pd.Series,
+                   print_score: bool=False
+                   ) -> VotingClassifier:
+    """
+
+    Args:
+        rf_model:
+        knn_model:
+        X_train:
+        y_train:
+        X_test:
+        y_test:
+
+    Returns:
+
+    """
+    estimators = [
+        ('rf', rf_model),
+        ('knn', knn_model)
+    ]
+    ensemble = VotingClassifier(estimators, voting='hard')
+    ensemble.fit(X_train, y_train)
+
+    if print_score:
+        pred = ensemble.predict(X_test)
+        print(classification_report(y_test, pred))
+        print(confusion_matrix(y_test, pred))
+
+    return ensemble
+
+
 # Feature Engineering
 df = exponential_smooth(df, 0.7)
 fig = df['close'].plot()
@@ -191,4 +227,10 @@ rf_model = train_random_forest(X_train, y_train, X_test, y_test, True)
 
 knn_model = train_KNN(X_train, y_train, X_test, y_test, True)
 
-
+ensemble_model = train_ensemble(rf_model,
+                                knn_model,
+                                X_train,
+                                y_train,
+                                X_test,
+                                y_test,
+                                True)
