@@ -9,18 +9,18 @@ import ast
 import configparser
 
 import numpy as np
-from finta import TA
-import matplotlib.pyplot as plt
+#from finta import TA
+#import matplotlib.pyplot as plt
 
-from sklearn import svm
+#from sklearn import svm
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.ensemble import AdaBoostClassifier
-from sklearn.ensemble import GradientBoostingClassifier
+#from sklearn.ensemble import AdaBoostClassifier
+#from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.ensemble import VotingClassifier
 from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.metrics import confusion_matrix, classification_report
-from sklearn import metrics
+from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
+#from sklearn import metrics
 
 pd.options.plotting.backend = "plotly"
 
@@ -199,6 +199,71 @@ def train_ensemble(rf_model: RandomForestClassifier,
     return ensemble
 
 
+def cross_validation(df: pd.DataFrame, num_train: int=10, len_train: int=50
+                     ) -> None:
+    """
+
+    Args:
+        df:
+        num_train:
+        len_train:
+
+    Returns:
+
+    """
+    # Lists to store the results from each model
+    rf_results = []
+    knn_results = []
+    ensemble_results = []
+
+    i = 0
+    while True:
+        # Partition the data into chunks of size len_train every num_train days
+        df = df.iloc[i * num_train: (i * num_train) + len_train]
+        i += 1
+        print(i * num_train, (i * num_train) + len_train)
+
+        if len(df) < len_train:
+            break
+
+        y = df['pred']
+        features = [x for x in df.columns if x not in ['pred']]
+        X = df[features]
+
+        X_train, X_test, y_train, y_test = train_test_split(X, y,
+                                                            train_size=7 * len(
+                                                                X) // 10,
+                                                            shuffle=False)
+
+        rf_model = train_random_forest(X_train, y_train, X_test, y_test)
+        knn_model = train_KNN(X_train, y_train, X_test, y_test)
+        ensemble_model = train_ensemble(rf_model, knn_model, X_train, y_train,
+                                         X_test, y_test)
+
+        rf_prediction = rf_model.predict(X_test)
+        knn_prediction = knn_model.predict(X_test)
+        ensemble_prediction = ensemble_model.predict(X_test)
+
+        print('rf prediction is ', rf_prediction)
+        print('knn prediction is ', knn_prediction)
+        print('ensemble prediction is ', ensemble_prediction)
+        print('truth values are ', y_test.values)
+
+        rf_accuracy = accuracy_score(y_test.values, rf_prediction)
+        knn_accuracy = accuracy_score(y_test.values, knn_prediction)
+        ensemble_accuracy = accuracy_score(y_test.values, ensemble_prediction)
+
+        print(rf_accuracy, knn_accuracy, ensemble_accuracy)
+        rf_results.append(rf_accuracy)
+        knn_results.append(knn_accuracy)
+        ensemble_results.append(ensemble_accuracy)
+
+    print('RF Accuracy = ' + str(sum(rf_results) / len(rf_results)))
+    print('KNN Accuracy = ' + str(sum(knn_results) / len(knn_results)))
+    print('Ensemble Accuracy = ' + str(sum(ensemble_results) / len(ensemble_results)))
+
+
+
 # Feature Engineering
 df = exponential_smooth(df, 0.7)
 fig = df['close'].plot()
@@ -223,14 +288,16 @@ X = df[features]
  y_train,
  y_test) = train_test_split(X, y, train_size=(7 * len(X) // 10), shuffle=False)
 
-rf_model = train_random_forest(X_train, y_train, X_test, y_test, True)
+# rf_model = train_random_forest(X_train, y_train, X_test, y_test, True)
+#
+# knn_model = train_KNN(X_train, y_train, X_test, y_test, True)
+#
+# ensemble_model = train_ensemble(rf_model,
+#                                 knn_model,
+#                                 X_train,
+#                                 y_train,
+#                                 X_test,
+#                                 y_test,
+#                                 True)
 
-knn_model = train_KNN(X_train, y_train, X_test, y_test, True)
-
-ensemble_model = train_ensemble(rf_model,
-                                knn_model,
-                                X_train,
-                                y_train,
-                                X_test,
-                                y_test,
-                                True)
+cross_validation(df)
