@@ -1,0 +1,7 @@
+yfinance
+datetime
+pandas
+configparser
+numpy
+scikit-learn
+plotly
